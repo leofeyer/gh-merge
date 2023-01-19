@@ -1,0 +1,128 @@
+#!/bin/bash
+set -eo pipefail
+
+die() {
+	echo -e "\033[0;31m$*\033[0m" >&2
+	exit 1
+}
+
+display_help() {
+	cat <<-EOF
+
+  usage:
+    gh merge                  Squash and merge the PR associated to the current branch
+    gh merge {number}         Squash and merge the given PR number
+
+  [options]
+    -h, --help                Display the help information
+
+	EOF
+}
+
+current_branch() {
+	git rev-parse --abbrev-ref HEAD
+}
+
+pr() {
+	gh pr view "$(current_branch)" --json number -q .number
+}
+
+body() {
+	cat <<-EOF
+	Description
+	-----------
+
+	{{.body}}
+
+	Commits
+	-------
+
+	{{range .commits}}
+	{{- printf "%.8s" .oid}} {{.messageHeadline}}
+	{{end}}
+	EOF
+}
+
+authors() {
+	cat <<-EOF
+	{{range .commits}}
+	{{- range .authors}}
+	{{- if ne .login $.author.login}}
+	Co-authored-by: {{.name}} <{{.email}}>
+	{{- end}}{{end}}{{end}}
+	EOF
+}
+
+thank_you() {
+	local user
+	user=$(gh config get user -h github.com)
+
+	local author
+	author=$(gh pr view "$1" --json author -q .author.login)
+
+	if [[ $user == "$author" ]]; then
+		return
+	fi
+
+	echo -n "Say thank you? (y/n): "
+	read -r answer
+
+	if [[ $answer == "y" ]]; then
+		gh pr comment "$1" --body "Thank you @$author."
+	fi
+}
+
+merge() {
+	local pr="$1"
+
+	if [[ $pr == "" ]]; then
+		pr="$(pr)"
+	fi
+
+	local closed
+	closed=$(gh pr view "$pr" --json closed -q .closed)
+
+	if [[ $closed == "true" ]]; then
+		die "This pull request is already closed!"
+	fi
+
+	local subject
+	subject=$(gh pr view "$pr" --json title,number --template '{{.title}} (see #{{.number}})')
+
+	local body
+	body=$(gh pr view "$pr" --json body,commits --template "$(body)" | tr -d '\r' | sed '/<!--/,/-->/d' | cat -s)
+
+	local authors
+	authors=$(gh pr view "$pr" --json author,commits --template "$(authors)" | awk '!x[$0]++')
+
+	if [[ $authors != "" ]]; then
+		body=$(echo -e "$body\n$authors")
+	fi
+
+	echo
+	echo "$body"
+	echo
+
+	echo -en "Merge \033[0;33m$subject\033[0m now? (y/n): "
+	read -r answer
+
+	if [[ $answer != "y" ]]; then
+		die "Cancelled."
+	fi
+
+	gh pr merge "$pr" --subject "$subject" --body "$body" --squash "${@:2}"
+	thank_you "$pr"
+
+	echo -e "\033[0;32mDone.\033[0m"
+}
+
+case $1 in
+	-h | --help)
+		display_help
+		;;
+	*)
+		merge "$@"
+		;;
+esac
+
+exit 0

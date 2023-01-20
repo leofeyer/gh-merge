@@ -1,6 +1,6 @@
 ## `gh merge`
 
-`gh merge` is a GitHub CLI extension to to squash and merge PRs. The commit
+`gh merge` is a GitHub CLI extension to squash and merge PRs. The commit
 message will be the PR description followed by the list of commits.
 
 ## Usage

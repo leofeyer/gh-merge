@@ -6,14 +6,18 @@ die() {
 	exit 1
 }
 
+confirm() {
+	echo -e "\033[0;32m✓\033[0m $*"
+}
+
 display_help() {
 	cat <<-EOF
 
   usage:
-    gh merge                  Squash and merge the PR associated to the current branch
-    gh merge {number}         Squash and merge the given PR number
+    gh merge                  Squash and merge the current PR
 
   [options]
+    -n, --number              Set a specific PR number
     -h, --help                Display the help information
 
 	EOF
@@ -54,11 +58,10 @@ authors() {
 }
 
 thank_you() {
-	local user
-	user=$(gh config get user -h github.com)
+	local user author answer
 
-	local author
-	author=$(gh pr view "$1" --json author -q .author.login)
+	user=$(gh config get user -h github.com)
+	author=$(gh pr view "$PR" --json author -q .author.login)
 
 	if [[ $user == "$author" ]]; then
 		return
@@ -68,35 +71,29 @@ thank_you() {
 	read -r answer
 
 	if [[ $answer == "y" ]]; then
-		gh pr comment "$1" --body "Thank you @$author."
+		gh pr comment "$PR" --body "Thank you @$author."
 	fi
 }
 
 merge() {
-	local pr="$1"
+	local closed subject body authors answer
 
-	if [[ $pr == "" ]]; then
-		pr="$(pr)"
+	if [[ $PR == "" ]]; then
+		PR="$(pr)"
 	fi
 
-	local closed
-	closed=$(gh pr view "$pr" --json closed -q .closed)
+	closed=$(gh pr view "$PR" --json closed -q .closed)
 
 	if [[ $closed == "true" ]]; then
-		die "This pull request is already closed!"
+		die "The pull request #$PR is closed."
 	fi
 
-	local subject
-	subject=$(gh pr view "$pr" --json title,number --template '{{.title}} (see #{{.number}})')
-
-	local body
-	body=$(gh pr view "$pr" --json body,commits --template "$(body)" | tr -d '\r' | sed '/<!--/,/-->/d' | cat -s)
-
-	local authors
-	authors=$(gh pr view "$pr" --json author,commits --template "$(authors)" | awk '!x[$0]++')
+	subject=$(gh pr view "$PR" --json title,number --template '{{.title}} (see #{{.number}})')
+	body=$(gh pr view "$PR" --json body,commits --template "$(body)" | tr -d '\r' | sed '/<!--/,/-->/d' | cat -s)
+	authors=$(gh pr view "$PR" --json author,commits --template "$(authors)" | awk '!x[$0]++')
 
 	if [[ $authors != "" ]]; then
-		body=$(echo -e "$body\n$authors")
+		body+=$'\n'"$authors"
 	fi
 
 	echo
@@ -110,19 +107,40 @@ merge() {
 		die "Cancelled."
 	fi
 
-	gh pr merge "$pr" --subject "$subject" --body "$body" --squash "${@:2}"
-	thank_you "$pr"
+	gh pr merge "$PR" --subject "$subject" --body "$body" --squash "${FLAGS[@]}"
+	thank_you
 
-	echo -e "\033[0;32mDone.\033[0m"
+	confirm "The pull request #$PR has been merged."
 }
 
-case $1 in
-	-h | --help)
-		display_help
-		;;
-	*)
-		merge "$@"
-		;;
-esac
+PR=''
+FLAGS=()
 
+while (( "$#" )); do
+	case "$1" in
+		-h|--help)
+			display_help
+			exit 0
+			;;
+		-n|--number)
+			if [[ $2 == "" || ${2:0:1} == "-" ]]; then
+				die "No argument for $1 given!"
+			fi
+			PR="$2"
+			shift 2
+			;;
+		--admin|--auto)
+			FLAGS+=("$1")
+			shift
+			;;
+		-*)
+			die "Unsupported flag: $1"
+			;;
+		*)
+			die "Unknown argument: $1"
+			;;
+	esac
+done
+
+merge
 exit 0

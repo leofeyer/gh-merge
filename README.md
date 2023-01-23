@@ -9,10 +9,10 @@ message will be the PR description followed by the list of commits.
 $ gh merge --help
 
   usage:
-    gh merge                  Squash and merge the PR associated to the current branch
-    gh merge {number}         Squash and merge the given PR number
+    gh merge                  Squash and merge the current PR
 
   [options]
+    -n, --number              Set a specific PR number
     -h, --help                Display the help information
 ```
 

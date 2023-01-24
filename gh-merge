@@ -13,22 +13,12 @@ confirm() {
 display_help() {
 	cat <<-EOF
 
-  usage:
-    gh merge                  Squash and merge the current PR
+Usage:  gh merge {<number>} [options]
 
-  [options]
-    -n, --number              Set a specific PR number
-    -h, --help                Display the help information
+Options:
+  -h, --help   Display the help information
 
 	EOF
-}
-
-current_branch() {
-	git rev-parse --abbrev-ref HEAD
-}
-
-pr() {
-	gh pr view "$(current_branch)" --json number -q .number
 }
 
 body() {
@@ -79,7 +69,7 @@ merge() {
 	local closed subject body authors answer
 
 	if [[ $PR == "" ]]; then
-		PR="$(pr)"
+		PR="$(gh pr view --json number -q .number)"
 	fi
 
 	closed=$(gh pr view "$PR" --json closed -q .closed)
@@ -113,7 +103,7 @@ merge() {
 	confirm "The pull request #$PR has been merged."
 }
 
-PR=''
+PARAMS=''
 FLAGS=()
 
 while (( "$#" )); do
@@ -121,13 +111,6 @@ while (( "$#" )); do
 		-h|--help)
 			display_help
 			exit 0
-			;;
-		-n|--number)
-			if [[ $2 == "" || ${2:0:1} == "-" ]]; then
-				die "No argument for $1 given!"
-			fi
-			PR="$2"
-			shift 2
 			;;
 		--admin|--auto)
 			FLAGS+=("$1")
@@ -137,10 +120,15 @@ while (( "$#" )); do
 			die "Unsupported flag: $1"
 			;;
 		*)
-			die "Unknown argument: $1"
+			PARAMS="$PARAMS $1"
+			shift
 			;;
 	esac
 done
 
+eval set -- "$PARAMS"
+
+PR="$1"
 merge
+
 exit 0

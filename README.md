@@ -8,12 +8,10 @@ message will be the PR description followed by the list of commits.
 ```bash
 $ gh merge --help
 
-  usage:
-    gh merge                  Squash and merge the current PR
+Usage:  gh merge {<number>} [options]
 
-  [options]
-    -n, --number              Set a specific PR number
-    -h, --help                Display the help information
+Options:
+  -h, --help   Display the help information
 ```
 
 ## Installation

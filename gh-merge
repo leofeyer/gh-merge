@@ -57,10 +57,10 @@ thank_you() {
 		return
 	fi
 
-	echo -n "Say thank you? (y/n): "
+	echo -n "Say thank you? (Y/n): "
 	read -r answer
 
-	if [[ $answer == "y" ]]; then
+	if [[ ${answer:-y} == "y" ]]; then
 		gh pr comment "$PR" --body "Thank you @$author."
 	fi
 }
@@ -90,10 +90,10 @@ merge() {
 	echo "$body"
 	echo
 
-	echo -en "Merge \033[0;33m$subject\033[0m now? (y/n): "
+	echo -en "Merge \033[0;33m$subject\033[0m now? (y/N): "
 	read -r answer
 
-	if [[ $answer != "y" ]]; then
+	if [[ ${answer:-n} != "y" ]]; then
 		die "Cancelled."
 	fi
 

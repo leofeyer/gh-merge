@@ -12,6 +12,11 @@ import (
 )
 
 func MergePr(pr string, auto bool, admin bool) error {
+	err := checkStatus(pr)
+	if err != nil {
+		return err
+	}
+
 	subject, err := getSubject(pr)
 	if err != nil {
 		return err
@@ -47,6 +52,30 @@ func MergePr(pr string, auto bool, admin bool) error {
 	}
 
 	fmt.Print(data.String())
+	return nil
+}
+
+func checkStatus(pr string) error {
+	data, _, err := gh.Exec("pr", "view", pr, "--json", "closed")
+	if err != nil {
+		return err
+	}
+
+	type Result struct {
+		Closed bool `json:"closed"`
+	}
+
+	var r Result
+
+	err = json.Unmarshal(data.Bytes(), &r)
+	if err != nil {
+		return err
+	}
+
+	if r.Closed {
+		return errors.New("The PR is closed.")
+	}
+
 	return nil
 }
 

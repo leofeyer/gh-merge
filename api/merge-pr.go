@@ -35,8 +35,7 @@ func MergePr(pr string, auto bool, admin bool) error {
 		return errors.New("Cancelled.")
 	}
 
-	var args []string
-	args = append(args, "pr", "merge", pr, "--subject", subject, "--body", body, "--squash")
+	args := []string{"pr", "merge", pr, "--subject", subject, "--body", body, "--squash"}
 
 	if auto {
 		args = append(args, "--auto")

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cli/go-gh"
 	"github.com/leofeyer/gh-merge/util"
@@ -44,7 +45,7 @@ func getUser() (string, error) {
 		return "", err
 	}
 
-	return data.String(), nil
+	return strings.TrimSpace(data.String()), nil
 }
 
 func getAuthor(pr string) (string, error) {

@@ -8,14 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Options struct {
-	Auto  bool
-	Admin bool
-}
-
 func rootCmd() *cobra.Command {
-	opts := &Options{}
-
 	cmd := &cobra.Command{
 		Use:   "gh merge <number>",
 		Short: "Merge a pull request",
@@ -26,7 +19,7 @@ func rootCmd() *cobra.Command {
 				return err
 			}
 
-			err = api.MergePr(number, opts.Auto, opts.Admin)
+			err = api.MergePr(number)
 			if err != nil {
 				return err
 			}
@@ -41,9 +34,6 @@ func rootCmd() *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-
-	cmd.Flags().BoolVarP(&opts.Auto, "auto", "", false, "enable auto-merging the pull request")
-	cmd.Flags().BoolVarP(&opts.Admin, "admin", "", false, "merge the pull request with admin rights")
 
 	return cmd
 }

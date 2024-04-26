@@ -1,6 +1,6 @@
 module github.com/leofeyer/gh-merge
 
-go 1.18
+go 1.19
 
 require (
 	github.com/cli/go-gh v1.2.1

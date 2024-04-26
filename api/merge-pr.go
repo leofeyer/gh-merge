@@ -11,7 +11,7 @@ import (
 	"github.com/leofeyer/gh-merge/util"
 )
 
-func MergePr(pr string, auto bool, admin bool) error {
+func MergePr(pr string) error {
 	err := checkStatus(pr)
 	if err != nil {
 		return err
@@ -31,23 +31,31 @@ func MergePr(pr string, auto bool, admin bool) error {
 	fmt.Println(body)
 
 	prompt := util.Confirm("Merge '"+subject+"' now?", false)
-	if prompt == false {
+	if !prompt {
 		return errors.New("Cancelled.")
 	}
 
 	args := []string{"pr", "merge", pr, "--subject", subject, "--body", body, "--squash"}
 
-	if auto {
-		args = append(args, "--auto")
-	}
-
-	if admin {
-		args = append(args, "--admin")
-	}
-
 	data, _, err := gh.Exec(args...)
 	if err != nil {
-		return err
+		if !strings.Contains(err.Error(), "not mergeable: the base branch policy prohibits the merge") {
+			return err
+		}
+
+		fmt.Println("The pull request is not mergeable because the base branch policy prohibits the merge.")
+
+		prompt = util.Confirm("Merge with admin privileges instead?", false)
+		if prompt {
+			args = append(args, "--admin")
+		} else {
+			args = append(args, "--auto")
+		}
+
+		data, _, err = gh.Exec(args...)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Print(data.String())

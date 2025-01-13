@@ -147,6 +147,10 @@ func getBody(pr string) (string, error) {
 			continue
 		}
 
+		if r.Commits[i].Headline == "Rebuild the assets" {
+			continue
+		}
+
 		if strings.HasPrefix(r.Commits[i].Headline, "Merge branch ") {
 			continue
 		}

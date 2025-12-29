@@ -23,15 +23,3 @@ you can omit the PR number:
 ```bash
 $ gh merge
 ```
-
-Use the `--auto` flag to enable auto-merging:
-
-```bash
-$ gh merge 1234 --auto
-```
-
-Use the `--admin` flag to merge the PR with admin privileges:
-
-```bash
-$ gh merge 1234 --admin
-```

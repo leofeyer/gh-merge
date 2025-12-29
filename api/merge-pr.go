@@ -43,14 +43,7 @@ func MergePr(pr string) error {
 			return err
 		}
 
-		fmt.Println("The pull request is not mergeable because the base branch policy prohibits the merge.")
-
-		prompt = util.Confirm("Merge with admin privileges instead?", false)
-		if prompt {
-			args = append(args, "--admin")
-		} else {
-			args = append(args, "--auto")
-		}
+		args = append(args, "--admin")
 
 		data, _, err = gh.Exec(args...)
 		if err != nil {

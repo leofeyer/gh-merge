@@ -3,8 +3,6 @@ package api
 import (
 	"encoding/json"
 	"strconv"
-
-	"github.com/cli/go-gh"
 )
 
 func GetNumber(args []string) (string, error) {
@@ -12,7 +10,7 @@ func GetNumber(args []string) (string, error) {
 		return args[0], nil
 	}
 
-	data, _, err := gh.Exec("pr", "view", "--json", "number")
+	data, err := execGh("pr", "view", "--json", "number")
 	if err != nil {
 		return "", err
 	}

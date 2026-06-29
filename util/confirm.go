@@ -14,12 +14,15 @@ func Confirm(label string, def bool) bool {
 	}
 
 	r := bufio.NewReader(os.Stdin)
-	var s string
 
 	for {
 		fmt.Fprintf(os.Stderr, "%s (%s) ", label, choices)
 
-		s, _ = r.ReadString('\n')
+		s, err := r.ReadString('\n')
+		if err != nil {
+			return false
+		}
+
 		s = strings.TrimSpace(s)
 		s = strings.ToLower(s)
 

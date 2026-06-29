@@ -19,12 +19,17 @@ func rootCmd() *cobra.Command {
 				return err
 			}
 
-			err = api.MergePr(number)
+			info, err := api.GetInfo(number)
 			if err != nil {
 				return err
 			}
 
-			err = api.ThankAuthor(number)
+			err = api.MergePr(number, info)
+			if err != nil {
+				return err
+			}
+
+			err = api.ThankAuthor(number, info)
 			if err != nil {
 				return err
 			}

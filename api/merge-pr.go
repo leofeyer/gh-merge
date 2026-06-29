@@ -1,31 +1,23 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/cli/go-gh"
 	"github.com/leofeyer/gh-merge/util"
 )
 
-func MergePr(pr string) error {
-	err := checkStatus(pr)
-	if err != nil {
-		return err
+var htmlCommentRegex = regexp.MustCompile(`(?s)<!--.*?-->`)
+
+func MergePr(pr string, info *PrInfo) error {
+	if info.Closed {
+		return errors.New("The PR is closed.")
 	}
 
-	subject, err := getSubject(pr)
-	if err != nil {
-		return err
-	}
-
-	body, err := getBody(pr)
-	if err != nil {
-		return err
-	}
+	subject := fmt.Sprintf("%s (see #%s)", info.Title, pr)
+	body := buildBody(info)
 
 	fmt.Println("")
 	fmt.Println(body)
@@ -37,7 +29,7 @@ func MergePr(pr string) error {
 
 	args := []string{"pr", "merge", pr, "--subject", subject, "--body", body, "--squash"}
 
-	data, _, err := gh.Exec(args...)
+	data, err := execGh(args...)
 	if err != nil {
 		if !strings.Contains(err.Error(), "not mergeable: the base branch policy prohibits the merge") {
 			return err
@@ -45,7 +37,7 @@ func MergePr(pr string) error {
 
 		args = append(args, "--admin")
 
-		data, _, err = gh.Exec(args...)
+		data, err = execGh(args...)
 		if err != nil {
 			return err
 		}
@@ -55,115 +47,47 @@ func MergePr(pr string) error {
 	return nil
 }
 
-func checkStatus(pr string) error {
-	data, _, err := gh.Exec("pr", "view", pr, "--json", "closed")
-	if err != nil {
-		return err
-	}
-
-	type Result struct {
-		Closed bool `json:"closed"`
-	}
-
-	var r Result
-
-	err = json.Unmarshal(data.Bytes(), &r)
-	if err != nil {
-		return err
-	}
-
-	if r.Closed {
-		return errors.New("The PR is closed.")
-	}
-
-	return nil
-}
-
-func getSubject(pr string) (string, error) {
-	data, _, err := gh.Exec("pr", "view", pr, "--json", "title")
-	if err != nil {
-		return "", err
-	}
-
-	type Result struct {
-		Title string `json:"title"`
-	}
-
-	var r Result
-
-	err = json.Unmarshal(data.Bytes(), &r)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%s (see #%s)", r.Title, pr), nil
-}
-
-func getBody(pr string) (string, error) {
-	data, _, err := gh.Exec("pr", "view", pr, "--json", "author,body,commits")
-	if err != nil {
-		return "", err
-	}
-
-	type Result struct {
-		Author struct {
-			Login string `json:"login"`
-		}
-		Body    string `json:"body"`
-		Commits []struct {
-			Oid      string `json:"oid"`
-			Headline string `json:"messageHeadline"`
-			Authors  []struct {
-				Login string `json:"login"`
-				Email string `json:"email"`
-			}
-		}
-	}
-
-	var r Result
-
-	err = json.Unmarshal(data.Bytes(), &r)
-	if err != nil {
-		return "", err
-	}
-
-	x := regexp.MustCompile("(?s)<!--.*?-->")
-
-	ret := "Description\n-----------\n\n"
-	ret += strings.TrimSpace(x.ReplaceAllString(r.Body, ""))
-	ret += "\n\nCommits\n-------\n\n"
+func buildBody(info *PrInfo) string {
+	var ret strings.Builder
+	ret.WriteString("Description\n-----------\n\n")
+	ret.WriteString(strings.TrimSpace(htmlCommentRegex.ReplaceAllString(info.Body, "")))
+	ret.WriteString("\n\nCommits\n-------\n\n")
 
 	authors := make(map[string]string)
 
-	for i := 0; i < len(r.Commits); i++ {
-		if r.Commits[i].Headline == "CS" {
+	for i := 0; i < len(info.Commits); i++ {
+		if info.Commits[i].Headline == "CS" {
 			continue
 		}
 
-		if r.Commits[i].Headline == "Rebuild the assets" {
+		if info.Commits[i].Headline == "Rebuild the assets" {
 			continue
 		}
 
-		if strings.HasPrefix(r.Commits[i].Headline, "Merge branch ") {
+		if strings.HasPrefix(info.Commits[i].Headline, "Merge branch ") {
 			continue
 		}
 
-		ret += fmt.Sprintf("%.8s", r.Commits[i].Oid) + " " + r.Commits[i].Headline + "\n"
+		ret.WriteString(fmt.Sprintf("%.8s", info.Commits[i].Oid) + " " + info.Commits[i].Headline + "\n")
 
-		if r.Commits[i].Authors[0].Login == r.Author.Login {
+		if len(info.Commits[i].Authors) < 1 {
 			continue
 		}
 
-		authors[r.Commits[i].Authors[0].Login] = r.Commits[i].Authors[0].Email
+		if info.Commits[i].Authors[0].Login == info.Author {
+			continue
+		}
+
+		authors[info.Commits[i].Authors[0].Login] = info.Commits[i].Authors[0].Email
 	}
 
 	if len(authors) > 0 {
-		ret += "\n"
+		ret.WriteString("\n")
 
 		for author, email := range authors {
-			ret += "Co-authored-by: " + author + " <" + email + ">\n"
+			ret.WriteString("Co-authored-by: " + author + " <" + email + ">\n")
 		}
 	}
 
-	return ret, nil
+	return ret.String()
 }

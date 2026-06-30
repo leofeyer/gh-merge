@@ -1,16 +1,14 @@
 name: release
 
 on:
-  push:
-    tags:
-      - '*'
+    push: ~
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: cli/gh-extension-precompile@v1.4.0
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: cli/gh-extension-precompile@v2.2.0

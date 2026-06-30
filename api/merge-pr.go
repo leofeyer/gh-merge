@@ -13,7 +13,7 @@ var htmlCommentRegex = regexp.MustCompile(`(?s)<!--.*?-->`)
 
 func MergePr(pr string, info *PrInfo) error {
 	if info.Closed {
-		return errors.New("The PR is closed.")
+		return errors.New("the pull request is closed")
 	}
 
 	subject := fmt.Sprintf("%s (see #%s)", info.Title, pr)
@@ -24,7 +24,7 @@ func MergePr(pr string, info *PrInfo) error {
 
 	prompt := util.Confirm("Merge '"+subject+"' now?", false)
 	if !prompt {
-		return errors.New("Cancelled.")
+		return errors.New("cancelled")
 	}
 
 	args := []string{"pr", "merge", pr, "--subject", subject, "--body", body, "--squash"}
@@ -35,9 +35,14 @@ func MergePr(pr string, info *PrInfo) error {
 			return err
 		}
 
-		args = append(args, "--admin")
+		fmt.Println("The pull request is not mergeable because the base branch policy prohibits the merge.")
 
-		data, err = execGh(args...)
+		prompt = util.Confirm("Merge with admin privileges instead?", false)
+		if !prompt {
+			return errors.New("cancelled")
+		}
+
+		data, err = execGh(append(args, "--admin")...)
 		if err != nil {
 			return err
 		}

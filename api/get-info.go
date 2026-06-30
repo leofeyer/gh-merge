@@ -25,7 +25,7 @@ func GetInfo(pr string) (*PrInfo, error) {
 		return nil, err
 	}
 
-	var raw struct {
+	var r struct {
 		Closed bool   `json:"closed"`
 		Title  string `json:"title"`
 		Author struct {
@@ -42,16 +42,15 @@ func GetInfo(pr string) (*PrInfo, error) {
 		}
 	}
 
-	err = json.Unmarshal(data.Bytes(), &raw)
-	if err != nil {
+	if err := json.Unmarshal(data.Bytes(), &r); err != nil {
 		return nil, err
 	}
 
 	return &PrInfo{
-		Closed:  raw.Closed,
-		Title:   raw.Title,
-		Author:  raw.Author.Login,
-		Body:    raw.Body,
-		Commits: raw.Commits,
+		Closed:  r.Closed,
+		Title:   r.Title,
+		Author:  r.Author.Login,
+		Body:    r.Body,
+		Commits: r.Commits,
 	}, nil
 }

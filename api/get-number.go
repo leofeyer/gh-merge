@@ -15,14 +15,11 @@ func GetNumber(args []string) (string, error) {
 		return "", err
 	}
 
-	type Result struct {
+	var r struct {
 		Number int `json:"number"`
 	}
 
-	var r Result
-
-	err = json.Unmarshal(data.Bytes(), &r)
-	if err != nil {
+	if err := json.Unmarshal(data.Bytes(), &r); err != nil {
 		return "", err
 	}
 

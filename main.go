@@ -24,14 +24,12 @@ func rootCmd() *cobra.Command {
 				return err
 			}
 
-			err = api.MergePr(number, info)
-			if err != nil {
+			if err := api.MergePr(number, info); err != nil {
 				return err
 			}
 
-			err = api.ThankAuthor(number, info)
-			if err != nil {
-				return err
+			if err := api.ThankAuthor(number, info); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to thank author: %s\n", err)
 			}
 
 			return nil
@@ -44,8 +42,7 @@ func rootCmd() *cobra.Command {
 }
 
 func main() {
-	err := rootCmd().Execute()
-	if err != nil {
+	if err := rootCmd().Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
